@@ -1,0 +1,26 @@
+그림 1 (fig:case) — 과다 탐색 사례. 실행 파일 없음. 아래 두 파일의 해당 부분을 보고 paper/figures/overexploration_case.tex (TikZ) 에 손으로 옮겨 적었다.
+
+문항: SWE-QA-Pro 206번, 저장소 getsentry/responses
+agent: Qwen3-8B base (평가 run qwen3-8b-nothink, golden step run qwen3-8b-nothink-sweqapro)
+경로는 code/ 기준.
+
+1. 궤적과 최종 답: evaluate-agent/out/qwen3-8b-nothink/sweqapro/results/206.json
+   item.question, item.repo          문항과 저장소 (그림의 Question 말풍선)
+   trajectory[0..28].tool_calls[0]   호출 1~29. turn 하나에 호출 하나, 키는 tool, args, result
+       trajectory[0]   execute_readonly_command  tree repos/responses
+       trajectory[1]   semantic_search  "version"
+       trajectory[2]   view_codebase  setup.py  → result 의 62행 version="0.14.0" (그림의 회색 줄)
+       trajectory[3..28]  view_codebase  responses/__init__.py 를 10줄씩 (그림의 "26 more calls")
+   trajectory[29]                    step limit 에서 강제로 답한 turn (tool_calls 비어 있음, response 가 <finish> 로 시작)
+   answer                            최종 답 (그림의 Final answer, version 을 못 맞춤)
+   score                             judge 점수 다섯 항목, 합 22
+   stop_reason                       "Forced after max iterations (30)"
+
+2. 세 번째 호출 뒤 강제 답: build-dataset/golden_step/out/qwen3-8b-nothink-sweqapro/answers/0206.json
+   (끝에 -sweqapro 가 붙은 test-set oracle run. 옆의 qwen3-8b-nothink/ 는 Expert 궤적 1,000개, qwen3-8b-nothink-own/ 은 Self 롤아웃 460개의
+    golden step run 이라 같은 번호가 다른 문항이다)
+   steps[k]                          호출 k개 뒤 강제 답 (steps[0] 은 호출 없이). k = 0..29
+   steps[3].answers[0..2]            호출 3개 뒤 강제 답 3개, 키는 reasoning, answer, score. 합 31, 39, 39
+   steps[3].answers[0].answer        그림의 "Answer if forced after call 3" (setup.py 의 version="0.14.0")
+   halting_step                      golden step = 21 (steps[21] 합 43, 41, 44)
+   halting_answer                    golden step 의 답
